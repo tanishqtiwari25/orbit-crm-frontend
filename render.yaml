@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: orbit-crm-frontend
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: out
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://orbit-crm-bpjg.onrender.com/api/*
+      - type: rewrite
+        source: /lead-form.js
+        destination: https://orbit-crm-bpjg.onrender.com/lead-form.js
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
