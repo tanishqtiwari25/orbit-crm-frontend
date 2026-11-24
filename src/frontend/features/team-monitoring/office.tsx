@@ -238,14 +238,24 @@ function Nameplate({
 }) {
   const plate = useRef<Mesh>(null);
   const { camera, gl, size } = useThree();
-  const [headX, headZ] = seatPoint(index, count, 0, 2.05);
+  const [headX, headZ] = seatPoint(index, count, 0, .4);
+  const labelVectors = useMemo(() => ({head:new Vector3(), center:new Vector3(), right:new Vector3(), up:new Vector3()}), []);
   useFrame(() => {
     if (!plate.current) return;
     const unit = camera instanceof OrthographicCamera
       ? (camera.right - camera.left) / (camera.zoom * size.width) : 0.025;
     const width = size.width < 480 ? 96 : 116;
     plate.current.scale.set(width * unit, 30 * unit, 1);
-    plate.current.position.set(headX, 0.2, headZ);
+    labelVectors.head.set(headX, 1.82, headZ).project(camera);
+    labelVectors.center.set(0, .9, 0).project(camera);
+    const dx = (labelVectors.head.x - labelVectors.center.x) * size.width;
+    const dy = (labelVectors.head.y - labelVectors.center.y) * size.height;
+    const length = Math.hypot(dx, dy) || 1;
+    labelVectors.right.set(1,0,0).applyQuaternion(camera.quaternion);
+    labelVectors.up.set(0,1,0).applyQuaternion(camera.quaternion);
+    plate.current.position.set(headX, 1.82, headZ)
+      .addScaledVector(labelVectors.right, dx / length * 85 * unit)
+      .addScaledVector(labelVectors.up, dy / length * 85 * unit);
     plate.current.quaternion.copy(camera.quaternion);
   });
   const texture = useMemo(() => {
