@@ -109,6 +109,7 @@ type PartProps = {
   focusingOnly?: boolean;
   typing?: number;
   screenFlow?: boolean;
+  faceOffset?: [number, number, number];
   animate?: boolean;
   onSelect: (id: string) => void;
 };
@@ -124,15 +125,16 @@ function Part({
   focusingOnly,
   typing,
   screenFlow,
+  faceOffset,
   animate,
   onSelect,
 }: PartProps) {
   const ref = useRef<InstancedMesh>(null);
-  const { invalidate, gl } = useThree();
+  const { invalidate, gl, camera } = useThree();
   const rounded = useMemo(() => new RoundedBoxGeometry(1, 1, 1, 2, 0.12), []);
   useEffect(() => () => rounded.dispose(), [rounded]);
   const scratch = useMemo(
-    () => ({ object: new Object3D(), color: new Color() }),
+    () => ({ object: new Object3D(), color: new Color(), offset: new Vector3() }),
     [],
   );
   const update = (time: number) => {
@@ -143,7 +145,7 @@ function Part({
         working = e.status === "focusing" || assignmentState(e) === "active";
       const wave =
         typing && animate && working
-          ? Math.sin(time * 11 + i * 1.7 + typing)
+          ? Math.sin(time * 4 + i * 1.7 + typing)
           : 0;
       scratch.object.position.set(x, position[1] + wave * 0.022, z);
       scratch.object.rotation.set(
@@ -151,6 +153,12 @@ function Part({
         rotation[1] + sharedSeat(i, employees.length).angle,
         rotation[2],
       );
+      if (faceOffset) {
+        const [hx, hz] = seatPoint(i, employees.length, 0, .4);
+        scratch.offset.set(...faceOffset).applyQuaternion(camera.quaternion);
+        scratch.object.position.set(hx, 1.55, hz).add(scratch.offset);
+        scratch.object.quaternion.copy(camera.quaternion);
+      }
       const shown = !focusingOnly || working;
       scratch.object.scale.set(
         scale[0] * (shown ? 1 : 0.001) * (screenFlow && animate && working ? .7 + .3 * Math.sin(time * 2 + i + position[1] * 12) ** 2 : 1),
@@ -176,7 +184,7 @@ function Part({
     invalidate();
   });
   useFrame(({ clock }) => {
-    if (typing && animate) update(clock.elapsedTime);
+    if ((typing && animate) || faceOffset) update(clock.elapsedTime);
   });
   return (
     <instancedMesh
@@ -479,6 +487,7 @@ function Office({
       />
       <Part
         {...common}
+        faceOffset={[0, .14, -.04]}
         position={[0, 1.69, 0.44]}
         scale={[0.265, 0.15, 0.22]}
         color="#3d3932"
@@ -488,6 +497,7 @@ function Office({
         <Part
           key={"eye" + side}
           {...common}
+          faceOffset={[side * .085, .03, .225]}
           position={[side * 0.085, 1.58, 0.175]}
           scale={[0.025, 0.03, 0.015]}
           color="#29342c"
