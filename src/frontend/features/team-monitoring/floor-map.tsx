@@ -148,6 +148,11 @@ export function FloorMap({
                       : "#45524b"
                   }
                 />
+                <g className="seat-work-screen">
+                  <rect x="-16" y="-41" width="32" height="4" rx="1" fill="#183f36" />
+                  {[0, 1, 2].map(row => <rect key={row} className="seat-screen-line" x="-15" y={-34 + row * 4} width={24 - row * 5} height="2" rx="1" fill="#f0fff9" style={{ animationDelay: `${row * -.35}s` }} />)}
+                  <rect className="seat-screen-cursor" x="10" y="-26" width="2" height="3" fill="#183f36" />
+                </g>
                 <rect
                   x="-18"
                   y="-11"
@@ -157,9 +162,17 @@ export function FloorMap({
                   fill="#fff"
                   stroke="#738271"
                 />
+                {Array.from({ length: 18 }, (_, key) => <rect key={key} className="seat-key" x={-15 + (key % 9) * 3.4} y={-9 + Math.floor(key / 9) * 4} width="2.5" height="2.8" rx=".5" fill="#7a8e83" style={{ animationDelay: `${key * -.13}s` }} />)}
                 <path
-                  className="office-hand"
-                  d="M-12 18-15-5m27 23 15-23"
+                  className="seat-hand-left"
+                  d="M-12 18 Q-20 7 -9 -4"
+                  stroke="#d9b69a"
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                />
+                <path
+                  className="seat-hand-right"
+                  d="M12 18 Q20 7 9 -4"
                   stroke="#d9b69a"
                   strokeWidth="7"
                   strokeLinecap="round"

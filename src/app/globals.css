@@ -4515,3 +4515,19 @@ dd {
 .shared-map-status { font-size:12px; fill:var(--muted); }
 .shared-floor-map.has-motion .shared-map-seat.focusing .office-hand { animation:office-typing .32s ease-in-out infinite alternate; }
 @media(prefers-reduced-motion:reduce) { .shared-floor-map.has-motion .shared-map-seat.focusing .office-hand { animation:none; } }
+
+/* Readable simulated work on shared-table seats. */
+.shared-map-seat .seat-work-screen { opacity: 0; }
+.shared-map-seat.focusing .seat-work-screen { opacity: 1; }
+.shared-floor-map.has-motion .focusing .seat-screen-line { transform-box: fill-box; transform-origin: left; animation: seat-work-lines 1.8s ease-in-out infinite alternate; }
+.shared-floor-map.has-motion .focusing .seat-screen-cursor { animation: seat-cursor .7s steps(2) infinite; }
+.shared-floor-map.has-motion .focusing .seat-key { animation: seat-keypress .9s steps(2) infinite; }
+.shared-floor-map.has-motion .focusing .seat-hand-left { animation: seat-hand-tap .36s ease-in-out infinite alternate; }
+.shared-floor-map.has-motion .focusing .seat-hand-right { animation: seat-hand-tap .36s -.36s ease-in-out infinite alternate; }
+@keyframes seat-work-lines { to { transform: scaleX(.45); } }
+@keyframes seat-cursor { to { opacity: 0; } }
+@keyframes seat-keypress { 45%, 65% { fill: #20a477; transform: translateY(1px); } }
+@keyframes seat-hand-tap { to { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .shared-floor-map.has-motion .focusing :is(.seat-screen-line,.seat-screen-cursor,.seat-key,.seat-hand-left,.seat-hand-right) { animation: none; }
+}

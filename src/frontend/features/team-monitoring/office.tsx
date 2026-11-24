@@ -109,6 +109,7 @@ type PartProps = {
   basic?: boolean;
   focusingOnly?: boolean;
   typing?: number;
+  screenFlow?: boolean;
   animate?: boolean;
   onSelect: (id: string) => void;
 };
@@ -123,6 +124,7 @@ function Part({
   basic,
   focusingOnly,
   typing,
+  screenFlow,
   animate,
   onSelect,
 }: PartProps) {
@@ -152,7 +154,7 @@ function Part({
       );
       const shown = !focusingOnly || working;
       scratch.object.scale.set(
-        scale[0] * (shown ? 1 : 0.001),
+        scale[0] * (shown ? 1 : 0.001) * (screenFlow && animate && working ? .7 + .3 * Math.sin(time * 2 + i + position[1] * 12) ** 2 : 1),
         scale[1] * (shown ? 1 : 0.001),
         scale[2] * (shown ? 1 : 0.001),
       );
@@ -431,6 +433,8 @@ function Office({
         <Part
           key={`screen${row}`}
           {...common}
+          screenFlow
+          typing={row + 1}
           position={[-0.09, 1.46 - row * 0.12, -0.705]}
           scale={[0.59 - row * 0.07, 0.035, 0.008]}
           color="#e5fff2"
@@ -450,6 +454,11 @@ function Office({
         scale={[0.72, 0.035, 0.25]}
         color="#56665b"
       />
+      {Array.from({ length: 18 }, (_, key) => (
+        <Part key={`keycap${key}`} {...common}
+          position={[-.3 + (key % 9) * .075, 1.018, -.31 + Math.floor(key / 9) * .12]}
+          scale={[.055, .018, .075]} color="#d5e5da" typing={key + 1} />
+      ))}
       <Part
         {...common}
         position={[0.56, 0.99, -0.21]}
