@@ -156,7 +156,7 @@ function Part({
       if (faceOffset) {
         const [hx, hz] = seatPoint(i, employees.length, 0, .4);
         scratch.offset.set(...faceOffset).applyQuaternion(camera.quaternion);
-        scratch.object.position.set(hx, 1.55, hz).add(scratch.offset);
+        scratch.object.position.set(hx, 1.82, hz).add(scratch.offset);
         scratch.object.quaternion.copy(camera.quaternion);
       }
       const shown = !focusingOnly || working;
@@ -480,14 +480,15 @@ function Office({
       />
       <Part
         {...common}
-        position={[0, 1.55, 0.4]}
-        scale={[0.26, 0.28, 0.24]}
+        faceOffset={[0, 0, 0]}
+        position={[0, 1.82, 0.4]}
+        scale={[0.28, 0.3, 0.25]}
         color={skin}
         shape="sphere"
       />
       <Part
         {...common}
-        faceOffset={[0, .14, -.04]}
+        faceOffset={[0, .19, -.08]}
         position={[0, 1.69, 0.44]}
         scale={[0.265, 0.15, 0.22]}
         color="#3d3932"
@@ -497,13 +498,15 @@ function Office({
         <Part
           key={"eye" + side}
           {...common}
-          faceOffset={[side * .085, .03, .225]}
+          faceOffset={[side * .09, .025, .249]}
           position={[side * 0.085, 1.58, 0.175]}
-          scale={[0.025, 0.03, 0.015]}
+          scale={[0.032, 0.038, 0.025]}
           color="#29342c"
           shape="sphere"
         />
       ))}
+      <Part {...common} position={[0, 1.5, .4]} scale={[.09, .3, .09]} color={skin} shape="cylinder" />
+      <Part {...common} faceOffset={[0, -.095, .241]} position={[0, 1.72, .4]} scale={[.055, .015, .018]} color="#805a49" shape="sphere" />
       {[-1, 1].map((side) => (
         <group key={side}>
           <Part
