@@ -28,7 +28,6 @@ import { FloorMap } from "./floor-map";
 import {
   workColors,
   assignmentState,
-  employeeLabel,
   type TeamEmployee,
 } from "@/frontend/entities/workforce";
 
@@ -231,66 +230,36 @@ function Nameplate({
 }) {
   const plate = useRef<Mesh>(null);
   const { camera, gl, size } = useThree();
-  const labelAnchor = useMemo(() => new Vector3(), []);
-  const labelUp = useMemo(() => new Vector3(), []);
-  const [headX, headZ] = seatPoint(index, count, 0, 0.4);
+  const [headX, headZ] = seatPoint(index, count, 0, 2.05);
   useFrame(() => {
     if (!plate.current) return;
-    // Offset in the camera plane, so rotating the table never projects the
-    // nameplate onto its own employee's head or monitor.
-    labelUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
-    const unit =
-      camera instanceof OrthographicCamera
-        ? (camera.right - camera.left) / (camera.zoom * size.width)
-        : 0.025;
-    const width = size.width < 480 ? 164 : 184;
-    const height = (width * (employee.assignmentOnly ? 300 : 224)) / 768;
-    plate.current.scale.set(width * unit, height * unit, 1);
-    labelAnchor
-      .set(headX, 1.7, headZ)
-      .addScaledVector(labelUp, 0.3 + (height / 2 + 12) * unit);
-    plate.current.position.copy(labelAnchor);
+    const unit = camera instanceof OrthographicCamera
+      ? (camera.right - camera.left) / (camera.zoom * size.width) : 0.025;
+    const width = size.width < 480 ? 96 : 116;
+    plate.current.scale.set(width * unit, 30 * unit, 1);
+    plate.current.position.set(headX, 0.2, headZ);
     plate.current.quaternion.copy(camera.quaternion);
   });
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 768;
-    canvas.height = employee.assignmentOnly ? 300 : 224;
+    canvas.height = 200;
     const c = canvas.getContext("2d")!;
     c.fillStyle = dark ? "#172c21" : "#ffffff";
-    c.fillRect(0, 0, 768, canvas.height);
-    c.strokeStyle = selected ? "#568966" : dark ? "#536b5c" : "#c2d0c6";
-    c.lineWidth = selected ? 10 : 6;
-    c.strokeRect(3, 3, 762, canvas.height - 6);
-    c.fillStyle = dark ? "#ffffff" : "#132a1c";
-    c.font = "700 64px sans-serif";
-    let name = employee.name;
-    while (c.measureText(name).width > 696 && name.length > 1)
-      name = name.slice(0, -1);
-    if (name !== employee.name) name = name.slice(0, -1) + "…";
-    c.fillText(name, 32, 91);
-    c.fillStyle = workColors[employee.status];
     c.beginPath();
-    c.arc(46, 157, 12, 0, Math.PI * 2);
+    c.roundRect(4, 4, 760, 192, 42);
     c.fill();
-    c.font = "500 48px sans-serif";
-    c.fillStyle = dark ? "#e0eee4" : "#304a39";
-    c.fillText(employeeLabel(employee), 76, 174);
-    const task = employee.tasks.find((t) => t.status === "Pending");
-    if (employee.assignmentOnly && task) {
-      c.font = "500 44px sans-serif";
-      c.fillText(
-        "Due " +
-          new Date(task.dueAt).toLocaleString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        32,
-        255,
-      );
-    }
+    c.strokeStyle = selected ? "#568966" : dark ? "#536b5c" : "#d9e3dc";
+    c.lineWidth = selected ? 10 : 5;
+    c.stroke();
+    c.fillStyle = assignmentState(employee) === "active" ? "#299567" : workColors[employee.status];
+    c.beginPath(); c.arc(62, 100, 16, 0, Math.PI * 2); c.fill();
+    c.fillStyle = dark ? "#ffffff" : "#132a1c";
+    c.font = "600 78px sans-serif";
+    let name = employee.name;
+    while (c.measureText(name).width > 620 && name.length > 1) name = name.slice(0, -1);
+    if (name !== employee.name) name = name.slice(0, -1) + "…";
+    c.fillText(name, 104, 128);
     const t = new CanvasTexture(canvas);
     t.colorSpace = SRGBColorSpace;
     t.anisotropy = gl.capabilities.getMaxAnisotropy();
@@ -301,7 +270,7 @@ function Nameplate({
     <mesh
       ref={plate}
       quaternion={camera.quaternion}
-      position={[headX, 2.65, headZ]}
+      position={[headX, 0.2, headZ]}
       renderOrder={10}
       onClick={(e) => {
         e.stopPropagation();
@@ -309,7 +278,7 @@ function Nameplate({
       }}
     >
       <planeGeometry args={[1, 1]} />
-      <meshBasicMaterial map={texture} toneMapped={false} depthTest={false} />
+      <meshBasicMaterial map={texture} transparent toneMapped={false} depthTest={false} />
     </mesh>
   );
 }
