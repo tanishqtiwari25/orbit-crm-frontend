@@ -11,6 +11,9 @@ import {
 } from "react";
 import {
   CanvasTexture,
+  BufferGeometry,
+  Line,
+  LineBasicMaterial,
   Shape,
   ExtrudeGeometry,
   SRGBColorSpace,
@@ -134,7 +137,11 @@ function Part({
   const rounded = useMemo(() => new RoundedBoxGeometry(1, 1, 1, 2, 0.12), []);
   useEffect(() => () => rounded.dispose(), [rounded]);
   const scratch = useMemo(
-    () => ({ object: new Object3D(), color: new Color(), offset: new Vector3() }),
+    () => ({
+      object: new Object3D(),
+      color: new Color(),
+      offset: new Vector3(),
+    }),
     [],
   );
   const update = (time: number) => {
@@ -154,14 +161,18 @@ function Part({
         rotation[2],
       );
       if (faceOffset) {
-        const [hx, hz] = seatPoint(i, employees.length, 0, .4);
+        const [hx, hz] = seatPoint(i, employees.length, 0, 0.4);
         scratch.offset.set(...faceOffset).applyQuaternion(camera.quaternion);
         scratch.object.position.set(hx, 1.82, hz).add(scratch.offset);
         scratch.object.quaternion.copy(camera.quaternion);
       }
       const shown = !focusingOnly || working;
       scratch.object.scale.set(
-        scale[0] * (shown ? 1 : 0.001) * (screenFlow && animate && working ? .7 + .3 * Math.sin(time * 2 + i + position[1] * 12) ** 2 : 1),
+        scale[0] *
+          (shown ? 1 : 0.001) *
+          (screenFlow && animate && working
+            ? 0.7 + 0.3 * Math.sin(time * 2 + i + position[1] * 12) ** 2
+            : 1),
         scale[1] * (shown ? 1 : 0.001),
         scale[2] * (shown ? 1 : 0.001),
       );
@@ -238,25 +249,93 @@ function Nameplate({
 }) {
   const plate = useRef<Mesh>(null);
   const { camera, gl, size } = useThree();
-  const [headX, headZ] = seatPoint(index, count, 0, .4);
-  const labelVectors = useMemo(() => ({head:new Vector3(), center:new Vector3(), right:new Vector3(), up:new Vector3()}), []);
+  const [headX, headZ] = seatPoint(index, count, 0, 0.4);
+  const layout = useMemo(
+    () => ({
+      heads: Array.from({ length: count }, () => new Vector3()),
+      center: new Vector3(),
+      start: new Vector3(),
+      end: new Vector3(),
+    }),
+    [count],
+  );
+  const leader = useMemo(() => {
+    const geometry = new BufferGeometry().setFromPoints([
+      new Vector3(),
+      new Vector3(),
+    ]);
+    const material = new LineBasicMaterial({
+      color: dark ? "#536b5c" : "#bacbc0",
+      transparent: true,
+      opacity: 0.8,
+      depthTest: false,
+    });
+    const line = new Line(geometry, material);
+    line.renderOrder = 9;
+    line.frustumCulled = false;
+    return line;
+  }, [dark]);
+  const leaderRef = useRef(leader);
+  useEffect(() => { leaderRef.current = leader; }, [leader]);
+  useEffect(
+    () => () => {
+      leader.geometry.dispose();
+      leader.material.dispose();
+    },
+    [leader],
+  );
   useFrame(() => {
     if (!plate.current) return;
-    const unit = camera instanceof OrthographicCamera
-      ? (camera.right - camera.left) / (camera.zoom * size.width) : 0.025;
-    const width = size.width < 480 ? 96 : 116;
-    plate.current.scale.set(width * unit, 30 * unit, 1);
-    labelVectors.head.set(headX, 1.82, headZ).project(camera);
-    labelVectors.center.set(0, .9, 0).project(camera);
-    const dx = (labelVectors.head.x - labelVectors.center.x) * size.width;
-    const dy = (labelVectors.head.y - labelVectors.center.y) * size.height;
-    const length = Math.hypot(dx, dy) || 1;
-    labelVectors.right.set(1,0,0).applyQuaternion(camera.quaternion);
-    labelVectors.up.set(0,1,0).applyQuaternion(camera.quaternion);
-    plate.current.position.set(headX, 1.82, headZ)
-      .addScaledVector(labelVectors.right, dx / length * 85 * unit)
-      .addScaledVector(labelVectors.up, dy / length * 85 * unit);
+    const unit =
+      camera instanceof OrthographicCamera
+        ? (camera.right - camera.left) / (camera.zoom * size.width)
+        : 0.025;
+    const width = size.width < 480 ? 100 : 120;
+    plate.current.scale.set(width * unit, 34 * unit, 1);
+    layout.center.set(0, 0.9, 0).project(camera);
+    layout.heads.forEach((point, i) => {
+      const [x, z] = seatPoint(i, count, 0, 0.4);
+      point.set(x, 1.82, z).project(camera);
+    });
+    const current = layout.heads[index];
+    const left = current.x < layout.center.x;
+    const column = layout.heads
+      .map((point, i) => ({ point, i }))
+      .filter(({ point }) => point.x < layout.center.x === left)
+      .sort((a, b) => b.point.y - a.point.y || a.i - b.i);
+    const rank = column.findIndex(({ i }) => i === index);
+    const minY = Math.max(
+      30,
+      Math.min(...layout.heads.map((p) => ((1 - p.y) * size.height) / 2)),
+    );
+    const maxY = Math.min(
+      size.height - 30,
+      Math.max(...layout.heads.map((p) => ((1 - p.y) * size.height) / 2)),
+    );
+    const spacing = Math.max(
+      46,
+      (maxY - minY) / Math.max(1, column.length - 1),
+    );
+    const y = Math.min(size.height - 26, minY + rank * spacing);
+    const x = left ? 22 + width / 2 : size.width - 22 - width / 2;
+    plate.current.position
+      .set((x / size.width) * 2 - 1, 1 - (y / size.height) * 2, current.z)
+      .unproject(camera);
     plate.current.quaternion.copy(camera.quaternion);
+    layout.start
+      .set(
+        ((x + (left ? width / 2 : -width / 2)) / size.width) * 2 - 1,
+        1 - (y / size.height) * 2,
+        current.z,
+      )
+      .unproject(camera);
+    layout.end.copy(current);
+    layout.end.setX(layout.end.x + (((left ? -1 : 1) * 18) / size.width) * 2);
+    layout.end.unproject(camera);
+    const positions = leaderRef.current.geometry.attributes.position;
+    positions.setXYZ(0, layout.start.x, layout.start.y, layout.start.z);
+    positions.setXYZ(1, layout.end.x, layout.end.y, layout.end.z);
+    positions.needsUpdate = true;
   });
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
@@ -270,12 +349,18 @@ function Nameplate({
     c.strokeStyle = selected ? "#568966" : dark ? "#536b5c" : "#d9e3dc";
     c.lineWidth = selected ? 10 : 5;
     c.stroke();
-    c.fillStyle = assignmentState(employee) === "active" ? "#299567" : workColors[employee.status];
-    c.beginPath(); c.arc(62, 100, 16, 0, Math.PI * 2); c.fill();
+    c.fillStyle =
+      assignmentState(employee) === "active"
+        ? "#299567"
+        : workColors[employee.status];
+    c.beginPath();
+    c.arc(62, 100, 16, 0, Math.PI * 2);
+    c.fill();
     c.fillStyle = dark ? "#ffffff" : "#132a1c";
     c.font = "600 78px sans-serif";
     let name = employee.name;
-    while (c.measureText(name).width > 620 && name.length > 1) name = name.slice(0, -1);
+    while (c.measureText(name).width > 620 && name.length > 1)
+      name = name.slice(0, -1);
     if (name !== employee.name) name = name.slice(0, -1) + "…";
     c.fillText(name, 104, 128);
     const t = new CanvasTexture(canvas);
@@ -285,19 +370,27 @@ function Nameplate({
   }, [employee, selected, dark, gl]);
   useEffect(() => () => texture.dispose(), [texture]);
   return (
-    <mesh
-      ref={plate}
-      quaternion={camera.quaternion}
-      position={[headX, 0.2, headZ]}
-      renderOrder={10}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect(employee.userId);
-      }}
-    >
-      <planeGeometry args={[1, 1]} />
-      <meshBasicMaterial map={texture} transparent toneMapped={false} depthTest={false} />
-    </mesh>
+    <group>
+      <primitive object={leader} />
+      <mesh
+        ref={plate}
+        quaternion={camera.quaternion}
+        position={[headX, 0.2, headZ]}
+        renderOrder={10}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(employee.userId);
+        }}
+      >
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial
+          map={texture}
+          transparent
+          toneMapped={false}
+          depthTest={false}
+        />
+      </mesh>
+    </group>
   );
 }
 function SharedTable({ count, dark }: { count: number; dark: boolean }) {
@@ -442,9 +535,18 @@ function Office({
         color="#56665b"
       />
       {Array.from({ length: 18 }, (_, key) => (
-        <Part key={`keycap${key}`} {...common}
-          position={[-.3 + (key % 9) * .075, 1.018, -.31 + Math.floor(key / 9) * .12]}
-          scale={[.055, .018, .075]} color="#d5e5da" typing={key + 1} />
+        <Part
+          key={`keycap${key}`}
+          {...common}
+          position={[
+            -0.3 + (key % 9) * 0.075,
+            1.018,
+            -0.31 + Math.floor(key / 9) * 0.12,
+          ]}
+          scale={[0.055, 0.018, 0.075]}
+          color="#d5e5da"
+          typing={key + 1}
+        />
       ))}
       <Part
         {...common}
@@ -498,7 +600,7 @@ function Office({
       />
       <Part
         {...common}
-        faceOffset={[0, .19, -.08]}
+        faceOffset={[0, 0.19, -0.08]}
         position={[0, 1.69, 0.44]}
         scale={[0.265, 0.15, 0.22]}
         color="#3d3932"
@@ -508,15 +610,28 @@ function Office({
         <Part
           key={"eye" + side}
           {...common}
-          faceOffset={[side * .09, .025, .249]}
+          faceOffset={[side * 0.09, 0.025, 0.249]}
           position={[side * 0.085, 1.58, 0.175]}
           scale={[0.032, 0.038, 0.025]}
           color="#29342c"
           shape="sphere"
         />
       ))}
-      <Part {...common} position={[0, 1.5, .4]} scale={[.09, .3, .09]} color={skin} shape="cylinder" />
-      <Part {...common} faceOffset={[0, -.095, .241]} position={[0, 1.72, .4]} scale={[.055, .015, .018]} color="#805a49" shape="sphere" />
+      <Part
+        {...common}
+        position={[0, 1.5, 0.4]}
+        scale={[0.09, 0.3, 0.09]}
+        color={skin}
+        shape="cylinder"
+      />
+      <Part
+        {...common}
+        faceOffset={[0, -0.095, 0.241]}
+        position={[0, 1.72, 0.4]}
+        scale={[0.055, 0.015, 0.018]}
+        color="#805a49"
+        shape="sphere"
+      />
       {[-1, 1].map((side) => (
         <group key={side}>
           <Part
