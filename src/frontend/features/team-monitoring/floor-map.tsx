@@ -1,6 +1,10 @@
 "use client";
 import { sharedTableSize, seatPoint, sharedSeat } from "./shared-table";
-import { workLabels, type TeamEmployee } from "@/frontend/entities/workforce";
+import {
+  assignmentState,
+  employeeLabel,
+  type TeamEmployee,
+} from "@/frontend/entities/workforce";
 
 export function EmptyOffice() {
   return (
@@ -88,7 +92,7 @@ export function FloorMap({
               role="button"
               tabIndex={0}
               aria-pressed={selected === employee.userId}
-              aria-label={`${employee.name}, ${workLabels[employee.status]}, ${employee.assigned} assigned tasks`}
+              aria-label={`${employee.name}, ${employeeLabel(employee)}, ${employee.assigned} assigned tasks`}
               onClick={() => onSelect(employee.userId)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -96,7 +100,7 @@ export function FloorMap({
                   onSelect(employee.userId);
                 }
               }}
-              className={`shared-map-seat ${employee.status} ${selected === employee.userId ? "selected" : ""}`}
+              className={`shared-map-seat ${assignmentState(employee) === "active" ? "focusing" : employee.status} ${selected === employee.userId ? "selected" : ""}`}
             >
               <g
                 transform={`translate(${px(seat.x)} ${px(seat.z)}) rotate(${(seat.angle * 180) / Math.PI})`}
@@ -137,7 +141,12 @@ export function FloorMap({
                   width="38"
                   height="22"
                   rx="2"
-                  fill={employee.status === "focusing" ? "#8ee0ab" : "#45524b"}
+                  fill={
+                    employee.status === "focusing" ||
+                    assignmentState(employee) === "active"
+                      ? "#8ee0ab"
+                      : "#45524b"
+                  }
                 />
                 <rect
                   x="-18"
@@ -172,7 +181,7 @@ export function FloorMap({
                 textAnchor="middle"
                 className="shared-map-status"
               >
-                {workLabels[employee.status]}
+                {employeeLabel(employee)}
               </text>
             </g>
           );

@@ -12,6 +12,8 @@ export interface TeamTask {
   version: number;
 }
 export interface TeamEmployee {
+  /** Owner-managed assignment seat; no employee login or presence is implied. */
+  assignmentOnly?: boolean;
   userId: string;
   name: string;
   team: string;

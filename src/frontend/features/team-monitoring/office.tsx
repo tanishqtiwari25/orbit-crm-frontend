@@ -27,7 +27,8 @@ import { sharedTableSize, sharedSeat, seatPoint } from "./shared-table";
 import { FloorMap } from "./floor-map";
 import {
   workColors,
-  workLabels,
+  assignmentState,
+  employeeLabel,
   type TeamEmployee,
 } from "@/frontend/entities/workforce";
 
@@ -138,7 +139,7 @@ function Part({
     if (!mesh) return;
     employees.forEach((e, i) => {
       const [x, z] = seatPoint(i, employees.length, position[0], position[2]),
-        working = e.status === "focusing";
+        working = e.status === "focusing" || assignmentState(e) === "active";
       const wave =
         typing && animate && working
           ? Math.sin(time * 11 + i * 1.7 + typing)
@@ -241,7 +242,7 @@ function Nameplate({
         ? (camera.right - camera.left) / (camera.zoom * size.width)
         : 0.025;
     const width = size.width < 480 ? 164 : 184;
-    const height = (width * 224) / 768;
+    const height = (width * (employee.assignmentOnly ? 300 : 224)) / 768;
     plate.current.scale.set(width * unit, height * unit, 1);
     labelAnchor
       .set(headX, 1.7, headZ)
@@ -252,13 +253,13 @@ function Nameplate({
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 768;
-    canvas.height = 224;
+    canvas.height = employee.assignmentOnly ? 300 : 224;
     const c = canvas.getContext("2d")!;
     c.fillStyle = dark ? "#172c21" : "#ffffff";
-    c.fillRect(0, 0, 768, 224);
+    c.fillRect(0, 0, 768, canvas.height);
     c.strokeStyle = selected ? "#568966" : dark ? "#536b5c" : "#c2d0c6";
     c.lineWidth = selected ? 10 : 6;
-    c.strokeRect(3, 3, 762, 218);
+    c.strokeRect(3, 3, 762, canvas.height - 6);
     c.fillStyle = dark ? "#ffffff" : "#132a1c";
     c.font = "700 64px sans-serif";
     let name = employee.name;
@@ -272,18 +273,27 @@ function Nameplate({
     c.fill();
     c.font = "500 48px sans-serif";
     c.fillStyle = dark ? "#e0eee4" : "#304a39";
-    c.fillText(workLabels[employee.status], 76, 174);
+    c.fillText(employeeLabel(employee), 76, 174);
+    const task = employee.tasks.find((t) => t.status === "Pending");
+    if (employee.assignmentOnly && task) {
+      c.font = "500 44px sans-serif";
+      c.fillText(
+        "Due " +
+          new Date(task.dueAt).toLocaleString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        32,
+        255,
+      );
+    }
     const t = new CanvasTexture(canvas);
     t.colorSpace = SRGBColorSpace;
     t.anisotropy = gl.capabilities.getMaxAnisotropy();
     return t;
-  }, [
-    employee.name,
-    employee.status,
-    selected,
-    dark,
-    gl,
-  ]);
+  }, [employee, selected, dark, gl]);
   useEffect(() => () => texture.dispose(), [texture]);
   return (
     <mesh
@@ -410,7 +420,11 @@ function Office({
         {...common}
         position={[0, 1.32, -0.716]}
         scale={[0.91, 0.51, 0.012]}
-        color={(e) => (e.status === "focusing" ? "#76cba7" : "#182c24")}
+        color={(e) =>
+          e.status === "focusing" || assignmentState(e) === "active"
+            ? "#76cba7"
+            : "#182c24"
+        }
         basic
       />
       {[0, 1, 2].map((row) => (
@@ -584,7 +598,11 @@ function WebGLOffice({
   const dark = useSyncExternalStore(subscribeTheme, readTheme, () => false);
   const width = sharedTableSize(employees.length) + 5,
     depth = width;
-  const moving = animate && employees.some((e) => e.status === "focusing");
+  const moving =
+    animate &&
+    employees.some(
+      (e) => e.status === "focusing" || assignmentState(e) === "active",
+    );
   return (
     <Canvas
       orthographic

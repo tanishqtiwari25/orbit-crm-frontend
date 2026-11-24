@@ -28,16 +28,18 @@ import {
   ChevronRight,
   Radio,
 } from "lucide-react";
-import { api } from "@/frontend/shared/api/client";
+import { api, mutate } from "@/frontend/shared/api/client";
 import { ErrorNotice } from "@/frontend/shared/ui/dialog";
 import { initials } from "@/frontend/entities/crm";
 import { officeView } from "./view";
-import { InviteEmployee } from "./invite";
+import { AssignEmployee } from "./assign";
 import { Deadline } from "./deadline";
 import { EmptyOffice, FloorMap } from "./floor-map";
 export { PersonalWorkspace } from "./personal";
 import {
   workLabels,
+  employeeLabel,
+  assignmentState,
   elapsed,
   taskDeadline,
   type TeamSnapshot,
@@ -69,12 +71,14 @@ function EmployeeDetail({
   timezone,
   onTask,
   onAssign,
+  onComplete,
   now,
 }: {
   employee: TeamEmployee;
   timezone: string;
   onTask: (id: string) => void;
   onAssign: (id: string) => void;
+  onComplete: (taskId: string) => Promise<void>;
   now: number;
 }) {
   const pending = employee.tasks.filter((t) => t.status === "Pending"),
@@ -99,9 +103,24 @@ function EmployeeDetail({
       </div>
       <span className={`work-status ${employee.status}`}>
         <i />
-        {workLabels[employee.status]}
+        {employeeLabel(employee, now)}
       </span>
-      {employee.focus ? (
+      {employee.assignmentOnly ? (
+        <div className="team-focus-card">
+          <span className="eyebrow">OWNER ASSIGNMENT</span>
+          <p>
+            {pending.length
+              ? employee.overdue === pending.length
+                ? "Deadline passed"
+                : "Assigned · active until deadline"
+              : "Work completed"}
+          </p>
+          <small>
+            Assigned seat and animation are a work schedule, not employee online
+            activity.
+          </small>
+        </div>
+      ) : employee.focus ? (
         <div className="team-focus-card">
           <span className="eyebrow">SELF-REPORTED FOCUS</span>
           <button onClick={() => onTask(employee.focus!.taskId)}>
@@ -145,30 +164,36 @@ function EmployeeDetail({
         {pending.map((task) => {
           const late = Date.parse(task.dueAt) < now;
           return (
-            <button
-              className="team-task"
-              key={task.id}
-              onClick={() => onTask(task.id)}
-            >
-              <span className={`task-due-mark ${late ? "late" : ""}`}>
-                <Clock3 size={15} />
-              </span>
-              <span>
-                <strong>{task.title}</strong>
-                <Deadline task={task} now={now} timezone={timezone} />
-                <small className={late ? "deadline-late" : ""}>
-                  {late ? "Overdue · " : "Due · "}
-                  {date(task.dueAt)}
-                </small>
-                <small>
-                  {task.priority} priority ·{" "}
-                  {employee.focus?.taskId === task.id
-                    ? "Focus timer running"
-                    : "Pending"}
-                </small>
-              </span>
-              <ArrowUpRight size={14} />
-            </button>
+            <div key={task.id}>
+              <button className="team-task" onClick={() => onTask(task.id)}>
+                <span className={`task-due-mark ${late ? "late" : ""}`}>
+                  <Clock3 size={15} />
+                </span>
+                <span>
+                  <strong>{task.title}</strong>
+                  <Deadline task={task} now={now} timezone={timezone} />
+                  <small className={late ? "deadline-late" : ""}>
+                    {late ? "Overdue · " : "Due · "}
+                    {date(task.dueAt)}
+                  </small>
+                  <small>
+                    {task.priority} priority ·{" "}
+                    {employee.focus?.taskId === task.id
+                      ? "Focus timer running"
+                      : "Pending"}
+                  </small>
+                </span>
+                <ArrowUpRight size={14} />
+              </button>
+              {employee.assignmentOnly && (
+                <button
+                  className="button secondary"
+                  onClick={() => void onComplete(task.id)}
+                >
+                  Mark completed
+                </button>
+              )}
+            </div>
           );
         })}
         {!pending.length && (
@@ -227,6 +252,7 @@ export function TeamMonitoring({
   }, []);
   const [includeMyDesk, setIncludeMyDesk] = useState(!ownerView);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [assignTo, setAssignTo] = useState<string>();
   const snapshot = useMemo(
     () => (source ? officeView(source, viewerId, includeMyDesk) : undefined),
     [source, viewerId, includeMyDesk],
@@ -286,9 +312,12 @@ export function TeamMonitoring({
               .toLowerCase()
               .includes(query.toLowerCase())) &&
           (!team || e.team === team) &&
-          (!status || e.status === status),
+          (!status ||
+            (status === "assigned"
+              ? assignmentState(e, now) === "active"
+              : !e.assignmentOnly && e.status === status)),
       ) ?? [],
-    [snapshot, query, team, status],
+    [snapshot, query, team, status, now],
   );
   const pageCount = Math.max(1, Math.ceil(employees.length / 12)),
     currentPage = Math.min(page, pageCount - 1),
@@ -302,8 +331,8 @@ export function TeamMonitoring({
           <div className="eyebrow">TEAM OPERATIONS</div>
           <h1>Team workspace</h1>
           <p>
-            Your employees at their desks. See their tasks, deadlines and live
-            focus.
+            Assign work and deadlines. Your employees join the shared table
+            immediately.
           </p>
         </div>
         <div className="team-live-meta">
@@ -338,11 +367,34 @@ export function TeamMonitoring({
             onClick={() => setInviteOpen(true)}
           >
             <Plus size={16} />
-            Invite employee
+            Add employee & assign work
           </button>
         )}
       </div>
-      {inviteOpen && <InviteEmployee onClose={() => setInviteOpen(false)} />}
+      {inviteOpen && (
+        <AssignEmployee
+          employees={(source?.employees ?? []).filter(
+            (e) => e.userId !== viewerId,
+          )}
+          initialId={assignTo}
+          onClose={() => {
+            setInviteOpen(false);
+            setAssignTo(undefined);
+          }}
+          onDone={(result, id) => {
+            setSnapshot(result);
+            setSelected(id);
+            setInviteOpen(false);
+            setAssignTo(undefined);
+            setQuery("");
+            setTeam("");
+            setStatus("");
+            setPage(0);
+            setMode("3d");
+            window.dispatchEvent(new Event("orbit-work-changed"));
+          }}
+        />
+      )}
       {error && <ErrorNotice message={error} />}
       {!snapshot ? (
         <div className="panel team-loading">
@@ -362,10 +414,16 @@ export function TeamMonitoring({
             <div>
               <span>
                 <Timer size={17} />
-                Focusing
+                Active assignments
               </span>
-              <strong>{snapshot.counts.focusing}</strong>
-              <small>timer + active app</small>
+              <strong>
+                {
+                  snapshot.employees.filter(
+                    (e) => assignmentState(e, now) === "active",
+                  ).length
+                }
+              </strong>
+              <small>until their deadlines</small>
             </div>
             <div>
               <span>
@@ -438,6 +496,7 @@ export function TeamMonitoring({
                 }}
               >
                 <option value="">All statuses</option>
+                <option value="assigned">Active assignments</option>
                 {Object.entries(workLabels).map(([id, label]) => (
                   <option key={id} value={id}>
                     {label}
@@ -637,7 +696,7 @@ export function TeamMonitoring({
                           </span>
                           <span className={`work-status ${e.status}`}>
                             <i />
-                            {workLabels[e.status]}
+                            {employeeLabel(e, now)}
                           </span>
                         </button>
                       );
@@ -685,7 +744,26 @@ export function TeamMonitoring({
                     employee={person}
                     timezone={snapshot.timezone}
                     onTask={onTask}
-                    onAssign={onAssign}
+                    onAssign={(id) => {
+                      if (ownerView) {
+                        setAssignTo(id);
+                        setInviteOpen(true);
+                      } else onAssign(id);
+                    }}
+                    onComplete={async (taskId) => {
+                      try {
+                        setSnapshot(
+                          await mutate<TeamSnapshot>(
+                            "workforce/assign",
+                            { taskId },
+                            "PATCH",
+                          ),
+                        );
+                        window.dispatchEvent(new Event("orbit-work-changed"));
+                      } catch (e) {
+                        setError((e as Error).message);
+                      }
+                    }}
                     now={now}
                   />
                 )}
@@ -700,28 +778,26 @@ export function TeamMonitoring({
                   : "Your team will sit together here."}
               </h2>
               <p>
-                The owner’s desk is hidden by default. Invite teammates, have
-                them join, then assign tasks to their employee accounts.
+                Add an employee name, assign their work and choose a deadline.
+                Their seat appears immediately; no invitation or login is
+                needed.
               </p>
               <ol className="team-setup-steps">
                 <li>
-                  <strong>Invite & join</strong>
+                  <strong>Add employee</strong>
                   <span>
-                    Each employee gets their own login and workspace seat.
+                    Enter a name or choose someone already on the table.
                   </span>
                 </li>
                 <li>
-                  <strong>Assign the work</strong>
-                  <span>
-                    Choose the employee in the task’s “Assign to employee”
-                    field.
-                  </span>
+                  <strong>Assign work</strong>
+                  <span>Save the task with a deadline.</span>
                 </li>
                 <li>
-                  <strong>Start working</strong>
+                  <strong>Track deadline</strong>
                   <span>
-                    Employee opens My workspace and starts focus. Their screen
-                    lights up and hands animate here.
+                    The assigned seat stays visible; its animation stops when
+                    the deadline passes or work is completed.
                   </span>
                 </li>
               </ol>
@@ -730,7 +806,7 @@ export function TeamMonitoring({
                   className="button primary"
                   onClick={() => setInviteOpen(true)}
                 >
-                  Invite your first employee
+                  Add employee & assign work
                 </button>
               )}
             </div>
@@ -739,16 +815,13 @@ export function TeamMonitoring({
             <Timer size={18} />
             <p>
               <strong>
-                Every joined member keeps a desk, even when offline.
+                Owner-managed seats activate immediately on assignment.
               </strong>{" "}
-              Monitors light up and hands animate only while focusing; these are
-              status illustrations, not a recording of someone’s keyboard or
-              screen. <strong>What “working” means here:</strong> Focusing
-              requires a self-started task timer and recent visible-app
-              activity. Away follows two minutes without interaction or a hidden
-              app. Offline means no live session update for 90 seconds. Work
-              outside the app is not inferred, and these signals are not proof
-              of productivity.{" "}
+              The assigned monitor and typing animation illustrate the scheduled
+              task period; they do not confirm employee online activity. At the
+              deadline, the animation stops and overdue work remains visible.
+              Joined employee accounts still show their actual focus and
+              app-presence status.{" "}
               <span>
                 Last snapshot: {new Date(snapshot.at).toLocaleTimeString()}.
               </span>
