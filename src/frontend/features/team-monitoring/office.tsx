@@ -293,8 +293,8 @@ function Nameplate({
       camera instanceof OrthographicCamera
         ? (camera.right - camera.left) / (camera.zoom * size.width)
         : 0.025;
-    const width = size.width < 480 ? 100 : 120;
-    plate.current.scale.set(width * unit, 34 * unit, 1);
+    const width = size.width < 480 ? 104 : 128;
+    plate.current.scale.set(width * unit, 36 * unit, 1);
     layout.center.set(0, 0.9, 0).project(camera);
     layout.heads.forEach((point, i) => {
       const [x, z] = seatPoint(i, count, 0, 0.4);
@@ -315,11 +315,16 @@ function Nameplate({
       size.height - 30,
       Math.max(...layout.heads.map((p) => ((1 - p.y) * size.height) / 2)),
     );
-    const spacing = Math.max(
-      46,
-      (maxY - minY) / Math.max(1, column.length - 1),
+    // Both columns share one row grid, even with unequal employee counts.
+    const leftCount = layout.heads.filter((p) => p.x < layout.center.x).length;
+    const rows = Math.max(leftCount, count - leftCount);
+    const spacing = Math.min(52, (size.height - 72) / Math.max(1, rows - 1));
+    const blockHeight = Math.max(0, rows - 1) * spacing;
+    const startY = Math.max(
+      36,
+      Math.min(size.height - 36 - blockHeight, (minY + maxY - blockHeight) / 2),
     );
-    const y = Math.min(size.height - 26, minY + rank * spacing);
+    const y = startY + rank * spacing;
     const x = left ? 22 + width / 2 : size.width - 22 - width / 2;
     plate.current.position
       .set((x / size.width) * 2 - 1, 1 - (y / size.height) * 2, current.z)
@@ -360,7 +365,7 @@ function Nameplate({
     c.arc(62, 100, 16, 0, Math.PI * 2);
     c.fill();
     c.fillStyle = dark ? "#ffffff" : "#132a1c";
-    c.font = "600 78px sans-serif";
+    c.font = "600 84px sans-serif";
     let name = employee.name;
     while (c.measureText(name).width > 620 && name.length > 1)
       name = name.slice(0, -1);
