@@ -11,9 +11,6 @@ import {
 } from "react";
 import {
   CanvasTexture,
-  BufferGeometry,
-  Line,
-  LineBasicMaterial,
   Shape,
   ExtrudeGeometry,
   SRGBColorSpace,
@@ -250,100 +247,17 @@ function Nameplate({
 }) {
   const plate = useRef<Mesh>(null);
   const { camera, gl, size } = useThree();
-  const [headX, headZ] = seatPoint(index, count, 0, 0.4);
-  const layout = useMemo(
-    () => ({
-      heads: Array.from({ length: count }, () => new Vector3()),
-      center: new Vector3(),
-      start: new Vector3(),
-      end: new Vector3(),
-    }),
-    [count],
-  );
-  const leader = useMemo(() => {
-    const geometry = new BufferGeometry().setFromPoints([
-      new Vector3(),
-      new Vector3(),
-    ]);
-    const material = new LineBasicMaterial({
-      color: dark ? "#536b5c" : "#bacbc0",
-      transparent: true,
-      opacity: 0.8,
-      depthTest: false,
-    });
-    const line = new Line(geometry, material);
-    line.renderOrder = 9;
-    line.frustumCulled = false;
-    return line;
-  }, [dark]);
-  const leaderRef = useRef(leader);
-  useEffect(() => {
-    leaderRef.current = leader;
-  }, [leader]);
-  useEffect(
-    () => () => {
-      leader.geometry.dispose();
-      leader.material.dispose();
-    },
-    [leader],
-  );
+  const [headX, headZ] = seatPoint(index, count, 0, 1.7);
   useFrame(() => {
     if (!plate.current) return;
     const unit =
       camera instanceof OrthographicCamera
         ? (camera.right - camera.left) / (camera.zoom * size.width)
         : 0.025;
-    const width = size.width < 480 ? 104 : 128;
-    plate.current.scale.set(width * unit, 36 * unit, 1);
-    layout.center.set(0, 0.9, 0).project(camera);
-    layout.heads.forEach((point, i) => {
-      const [x, z] = seatPoint(i, count, 0, 0.4);
-      point.set(x, 1.82, z).project(camera);
-    });
-    const current = layout.heads[index];
-    const left = current.x < layout.center.x;
-    const column = layout.heads
-      .map((point, i) => ({ point, i }))
-      .filter(({ point }) => point.x < layout.center.x === left)
-      .sort((a, b) => b.point.y - a.point.y || a.i - b.i);
-    const rank = column.findIndex(({ i }) => i === index);
-    const minY = Math.max(
-      30,
-      Math.min(...layout.heads.map((p) => ((1 - p.y) * size.height) / 2)),
-    );
-    const maxY = Math.min(
-      size.height - 30,
-      Math.max(...layout.heads.map((p) => ((1 - p.y) * size.height) / 2)),
-    );
-    // Both columns share one row grid, even with unequal employee counts.
-    const leftCount = layout.heads.filter((p) => p.x < layout.center.x).length;
-    const rows = Math.max(leftCount, count - leftCount);
-    const spacing = Math.min(52, (size.height - 72) / Math.max(1, rows - 1));
-    const blockHeight = Math.max(0, rows - 1) * spacing;
-    const startY = Math.max(
-      36,
-      Math.min(size.height - 36 - blockHeight, (minY + maxY - blockHeight) / 2),
-    );
-    const y = startY + rank * spacing;
-    const x = left ? 22 + width / 2 : size.width - 22 - width / 2;
-    plate.current.position
-      .set((x / size.width) * 2 - 1, 1 - (y / size.height) * 2, current.z)
-      .unproject(camera);
+    const width = Math.max(76, Math.min(104, 2.8 / unit - 8));
+    plate.current.scale.set(width * unit, 28 * unit, 1);
+    plate.current.position.set(headX, 0.25, headZ);
     plate.current.quaternion.copy(camera.quaternion);
-    layout.start
-      .set(
-        ((x + (left ? width / 2 : -width / 2)) / size.width) * 2 - 1,
-        1 - (y / size.height) * 2,
-        current.z,
-      )
-      .unproject(camera);
-    layout.end.copy(current);
-    layout.end.setX(layout.end.x + (((left ? -1 : 1) * 18) / size.width) * 2);
-    layout.end.unproject(camera);
-    const positions = leaderRef.current.geometry.attributes.position;
-    positions.setXYZ(0, layout.start.x, layout.start.y, layout.start.z);
-    positions.setXYZ(1, layout.end.x, layout.end.y, layout.end.z);
-    positions.needsUpdate = true;
   });
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
@@ -365,12 +279,12 @@ function Nameplate({
     c.arc(62, 100, 16, 0, Math.PI * 2);
     c.fill();
     c.fillStyle = dark ? "#ffffff" : "#132a1c";
-    c.font = "600 84px sans-serif";
+    c.font = "600 104px sans-serif";
     let name = employee.name;
     while (c.measureText(name).width > 620 && name.length > 1)
       name = name.slice(0, -1);
     if (name !== employee.name) name = name.slice(0, -1) + "…";
-    c.fillText(name, 104, 128);
+    c.fillText(name, 104, 136);
     const t = new CanvasTexture(canvas);
     t.colorSpace = SRGBColorSpace;
     t.anisotropy = gl.capabilities.getMaxAnisotropy();
@@ -379,7 +293,6 @@ function Nameplate({
   useEffect(() => () => texture.dispose(), [texture]);
   return (
     <group>
-      <primitive object={leader} />
       <mesh
         ref={plate}
         quaternion={camera.quaternion}
