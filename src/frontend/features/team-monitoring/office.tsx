@@ -247,44 +247,75 @@ function Nameplate({
 }) {
   const plate = useRef<Mesh>(null);
   const { camera, gl, size } = useThree();
-  const [headX, headZ] = seatPoint(index, count, 0, 1.7);
+  const [headX, headZ] = seatPoint(index, count, 0, 2.3);
   useFrame(() => {
     if (!plate.current) return;
     const unit =
       camera instanceof OrthographicCamera
         ? (camera.right - camera.left) / (camera.zoom * size.width)
         : 0.025;
-    const width = Math.max(76, Math.min(104, 2.8 / unit - 8));
-    plate.current.scale.set(width * unit, 28 * unit, 1);
+    const width = size.width < 480 ? 118 : 138;
+    plate.current.scale.set(width * unit, 50 * unit, 1);
     plate.current.position.set(headX, 0.25, headZ);
     plate.current.quaternion.copy(camera.quaternion);
   });
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 768;
-    canvas.height = 200;
+    canvas.height = 280;
     const c = canvas.getContext("2d")!;
-    c.fillStyle = dark ? "#172c21" : "#ffffff";
+    const active = assignmentState(employee) === "active";
+    const accent = active ? "#2d986c" : workColors[employee.status];
+    c.fillStyle = dark ? "#1b2a23" : "#ffffff";
     c.beginPath();
-    c.roundRect(4, 4, 760, 192, 42);
+    c.roundRect(6, 6, 756, 268, 130);
     c.fill();
-    c.strokeStyle = selected ? "#568966" : dark ? "#536b5c" : "#d9e3dc";
+    c.strokeStyle = selected ? "#568966" : dark ? "#536b5c" : "#dce5df";
     c.lineWidth = selected ? 10 : 5;
     c.stroke();
-    c.fillStyle =
-      assignmentState(employee) === "active"
-        ? "#299567"
-        : workColors[employee.status];
+    c.fillStyle = dark ? "#30443a" : "#edf3ef";
     c.beginPath();
-    c.arc(62, 100, 16, 0, Math.PI * 2);
+    c.arc(139, 140, 100, 0, Math.PI * 2);
     c.fill();
-    c.fillStyle = dark ? "#ffffff" : "#132a1c";
-    c.font = "600 104px sans-serif";
+    c.fillStyle = dark ? "#ffffff" : "#244f3c";
+    c.font = "600 70px sans-serif";
+    c.textAlign = "center";
+    const initials = employee.name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((n) => n[0])
+      .join("");
+    c.fillText(initials, 139, 163);
+    c.textAlign = "left";
+    c.font = "600 76px sans-serif";
     let name = employee.name;
-    while (c.measureText(name).width > 620 && name.length > 1)
+    while (c.measureText(name).width > 460 && name.length > 1)
       name = name.slice(0, -1);
     if (name !== employee.name) name = name.slice(0, -1) + "…";
-    c.fillText(name, 104, 136);
+    c.fillStyle = dark ? "#ffffff" : "#203b31";
+    c.fillText(name, 266, 125);
+    c.fillStyle = accent;
+    c.beginPath();
+    c.arc(280, 188, 13, 0, Math.PI * 2);
+    c.fill();
+    c.font = "500 60px sans-serif";
+    const state = assignmentState(employee);
+    const status =
+      state === "active"
+        ? "Assigned"
+        : state === "overdue"
+          ? "Overdue"
+          : state === "completed"
+            ? "Completed"
+            : employee.status === "focusing"
+              ? "Working"
+              : employee.status === "available"
+                ? "Available"
+                : employee.status === "away"
+                  ? "Away"
+                  : "Offline";
+    c.fillText(status, 309, 209);
     const t = new CanvasTexture(canvas);
     t.colorSpace = SRGBColorSpace;
     t.anisotropy = gl.capabilities.getMaxAnisotropy();
@@ -316,19 +347,25 @@ function Nameplate({
 }
 function SharedTable({ count, dark }: { count: number; dark: boolean }) {
   const size = sharedTableSize(count);
+  const titleTexture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 384;
+    const c = canvas.getContext("2d")!;
+    c.textAlign = "center";
+    c.fillStyle = dark ? "#f3eee4" : "#4e493c";
+    c.font = "600 82px sans-serif";
+    c.fillText("Shared workspace", 512, 166);
+    c.font = "400 48px sans-serif";
+    c.fillText(count + " people at one table", 512, 246);
+    const texture = new CanvasTexture(canvas);
+    texture.colorSpace = SRGBColorSpace;
+    return texture;
+  }, [count, dark]);
+  useEffect(() => () => titleTexture.dispose(), [titleTexture]);
   const geometry = useMemo(() => {
-    const half = size / 2,
-      r = 0.65,
-      shape = new Shape();
-    shape.moveTo(-half + r, -half);
-    shape.lineTo(half - r, -half);
-    shape.quadraticCurveTo(half, -half, half, -half + r);
-    shape.lineTo(half, half - r);
-    shape.quadraticCurveTo(half, half, half - r, half);
-    shape.lineTo(-half + r, half);
-    shape.quadraticCurveTo(-half, half, -half, half - r);
-    shape.lineTo(-half, -half + r);
-    shape.quadraticCurveTo(-half, -half, -half + r, -half);
+    const shape = new Shape();
+    shape.absarc(0, 0, size / 2, 0, Math.PI * 2, false);
     const g = new ExtrudeGeometry(shape, {
       depth: 0.12,
       bevelEnabled: true,
@@ -336,7 +373,7 @@ function SharedTable({ count, dark }: { count: number; dark: boolean }) {
       steps: 1,
       bevelSize: 0.035,
       bevelThickness: 0.025,
-      curveSegments: 12,
+      curveSegments: 48,
     });
     g.rotateX(-Math.PI / 2);
     return g;
@@ -344,6 +381,19 @@ function SharedTable({ count, dark }: { count: number; dark: boolean }) {
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
     <group>
+      <mesh position={[0, 1.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[3.7, 1.38]} />
+        <meshBasicMaterial
+          map={titleTexture}
+          transparent
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh position={[0, 0.998, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[size / 2 - 0.12, size / 2 - 0.085, 96]} />
+        <meshBasicMaterial color={dark ? "#ab9476" : "#f9dfb9"} />
+      </mesh>
       <mesh
         geometry={geometry}
         position={[0, 0.84, 0]}
@@ -351,7 +401,7 @@ function SharedTable({ count, dark }: { count: number; dark: boolean }) {
         receiveShadow
       >
         <meshStandardMaterial
-          color={dark ? "#8a8979" : "#eee0c8"}
+          color={dark ? "#8a7862" : "#edc995"}
           roughness={0.82}
         />
       </mesh>
@@ -359,7 +409,7 @@ function SharedTable({ count, dark }: { count: number; dark: boolean }) {
         [-1, 1].map((z) => (
           <mesh
             key={x + ":" + z}
-            position={[x * (size / 2 - 0.55), 0.4, z * (size / 2 - 0.55)]}
+            position={[x * size * 0.26, 0.4, z * size * 0.26]}
             castShadow
           >
             <cylinderGeometry args={[0.1, 0.13, 0.8, 12]} />
