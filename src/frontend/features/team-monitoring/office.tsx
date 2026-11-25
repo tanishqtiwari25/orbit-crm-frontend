@@ -159,6 +159,7 @@ function Part({
         rotation[0] + wave * 0.025,
         rotation[1] + sharedSeat(i, employees.length).angle,
         rotation[2],
+        "YXZ",
       );
       if (faceOffset) {
         const [hx, hz] = seatPoint(i, employees.length, 0, 0.4);
