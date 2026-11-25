@@ -62,7 +62,7 @@ function Controls({
     c.enablePan = true;
     c.enableDamping = false;
     c.minPolarAngle = 0.35;
-    c.maxPolarAngle = 1.2;
+    c.maxPolarAngle = 0.72;
     c.enableZoom = false;
     const changed = () => invalidate();
     c.addEventListener("change", changed);
@@ -74,7 +74,7 @@ function Controls({
   }, [camera, gl, invalidate]);
   useEffect(() => {
     const angle = 0.55 + (view * Math.PI) / 4;
-    camera.position.set(Math.sin(angle) * 25, 24, Math.cos(angle) * 25);
+    camera.position.set(Math.sin(angle) * 25, 40, Math.cos(angle) * 25);
     camera.lookAt(0, 0.5, 0);
     controls.current?.target.set(0, 0.5, 0);
     if (camera instanceof OrthographicCamera) {
@@ -276,7 +276,9 @@ function Nameplate({
     return line;
   }, [dark]);
   const leaderRef = useRef(leader);
-  useEffect(() => { leaderRef.current = leader; }, [leader]);
+  useEffect(() => {
+    leaderRef.current = leader;
+  }, [leader]);
   useEffect(
     () => () => {
       leader.geometry.dispose();
@@ -493,6 +495,7 @@ function Office({
       />
       <Part
         {...common}
+        rotation={[-Math.PI / 3, 0, 0]}
         position={[0, 1.32, -0.77]}
         scale={[1.03, 0.64, 0.09]}
         shape="rounded"
@@ -500,7 +503,8 @@ function Office({
       />
       <Part
         {...common}
-        position={[0, 1.32, -0.716]}
+        rotation={[-Math.PI / 3, 0, 0]}
+        position={[0, 1.367, -0.743]}
         scale={[0.91, 0.51, 0.012]}
         color={(e) =>
           e.status === "focusing" || assignmentState(e) === "active"
@@ -515,7 +519,12 @@ function Office({
           {...common}
           screenFlow
           typing={row + 1}
-          position={[-0.09, 1.46 - row * 0.12, -0.705]}
+          rotation={[-Math.PI / 3, 0, 0]}
+          position={[
+            -0.09,
+            1.377 + (0.14 - row * 0.12) * 0.5,
+            -0.737 - (0.14 - row * 0.12) * 0.866,
+          ]}
           scale={[0.59 - row * 0.07, 0.035, 0.008]}
           color="#e5fff2"
           focusingOnly
@@ -592,7 +601,6 @@ function Office({
       />
       <Part
         {...common}
-        faceOffset={[0, 0, 0]}
         position={[0, 1.82, 0.4]}
         scale={[0.28, 0.3, 0.25]}
         color={skin}
@@ -600,8 +608,7 @@ function Office({
       />
       <Part
         {...common}
-        faceOffset={[0, 0.19, -0.08]}
-        position={[0, 1.69, 0.44]}
+        position={[0, 2.01, 0.48]}
         scale={[0.265, 0.15, 0.22]}
         color="#3d3932"
         shape="sphere"
@@ -610,8 +617,7 @@ function Office({
         <Part
           key={"eye" + side}
           {...common}
-          faceOffset={[side * 0.09, 0.025, 0.249]}
-          position={[side * 0.085, 1.58, 0.175]}
+          position={[side * 0.09, 1.845, 0.151]}
           scale={[0.032, 0.038, 0.025]}
           color="#29342c"
           shape="sphere"
@@ -626,8 +632,7 @@ function Office({
       />
       <Part
         {...common}
-        faceOffset={[0, -0.095, 0.241]}
-        position={[0, 1.72, 0.4]}
+        position={[0, 1.725, 0.159]}
         scale={[0.055, 0.015, 0.018]}
         color="#805a49"
         shape="sphere"
