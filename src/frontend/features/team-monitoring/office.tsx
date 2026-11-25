@@ -61,8 +61,8 @@ function Controls({
     c.target.set(0, 0.5, 0);
     c.enablePan = true;
     c.enableDamping = false;
-    c.minPolarAngle = 0.35;
-    c.maxPolarAngle = 0.72;
+    c.minPolarAngle = 0.08;
+    c.maxPolarAngle = 0.45;
     c.enableZoom = false;
     const changed = () => invalidate();
     c.addEventListener("change", changed);
@@ -73,8 +73,8 @@ function Controls({
     };
   }, [camera, gl, invalidate]);
   useEffect(() => {
-    const angle = 0.55 + (view * Math.PI) / 4;
-    camera.position.set(Math.sin(angle) * 25, 40, Math.cos(angle) * 25);
+    const angle = (view * Math.PI) / 4;
+    camera.position.set(Math.sin(angle) * 6, 50, Math.cos(angle) * 6);
     camera.lookAt(0, 0.5, 0);
     controls.current?.target.set(0, 0.5, 0);
     if (camera instanceof OrthographicCamera) {
@@ -729,7 +729,7 @@ function WebGLOffice({
     <Canvas
       orthographic
       shadows
-      camera={{ position: [10, 30, 25], zoom: 30, near: 0.1, far: 250 }}
+      camera={{ position: [0, 50, 6], zoom: 30, near: 0.1, far: 250 }}
       dpr={[1, 1.5]}
       frameloop={moving ? "always" : "demand"}
       fallback={
