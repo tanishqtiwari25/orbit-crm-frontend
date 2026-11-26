@@ -186,6 +186,24 @@ export function WorkspacePage({ section }: { section: string }) {
     setKind(sectionKind[section]);
     setPage(1);
     setSelection([]);
+    setRecords([]);
+    setTotal(0);
+    setSearchInput("");
+    setQ("");
+    setOwner("");
+    setTeam("");
+    setSource("");
+    setPipeline("");
+    setFrom("");
+    setTo("");
+    setDue("");
+    setDeleted(false);
+    setSort("updatedAt");
+    setView(section === "deals" ? "board" : "table");
+    setShowFilters(false);
+    setEditor(null);
+    setDetail(null);
+    setImporting(false);
   }, [section]);
   const filters = new URLSearchParams({
     ...(q ? { query: q } : {}),

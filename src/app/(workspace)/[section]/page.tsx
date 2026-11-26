@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { WorkspacePage } from "@/frontend/pages/workspace";
 export default async function Page({
   params,
 }: {
@@ -27,7 +26,7 @@ export default async function Page({
     ].includes(section)
   )
     notFound();
-  return <WorkspacePage section={section} />;
+  return null;
 }
 
 export const dynamicParams = false;
