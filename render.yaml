@@ -2,8 +2,16 @@ services:
   - type: web
     name: orbit-crm-frontend
     runtime: static
+    repo: https://github.com/tanishqtiwari25/orbit-crm-frontend
+    branch: main
+    autoDeployTrigger: checksPass
     buildCommand: npm ci && npm run build
     staticPublishPath: out
+    envVars:
+      - key: NODE_VERSION
+        value: 24.13.0
+      - key: NEXT_TELEMETRY_DISABLED
+        value: '1'
     routes:
       - type: rewrite
         source: /api/*
