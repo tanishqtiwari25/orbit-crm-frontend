@@ -2,7 +2,14 @@
 import { useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight, Check, Layers, ShieldCheck } from "lucide-react";
+import {
+  ArrowUpRight,
+  Check,
+  Users,
+  Handshake,
+  CheckSquare,
+  ShieldCheck,
+} from "lucide-react";
 import { mutate } from "@/frontend/shared/api/client";
 import { ErrorNotice } from "@/frontend/shared/ui/dialog";
 export function LoginPage() {
@@ -63,30 +70,50 @@ export function LoginPage() {
           <span className="brand-crm">CRM</span>
         </Link>
         <div className="auth-story-copy">
-          <span className="eyebrow">GOOD RELATIONSHIPS. GREAT BUSINESS.</span>
+          <span className="eyebrow">YOUR BUSINESS. IN FOCUS.</span>
           <h1>
-            Keep your people
-            <br />
-            in your orbit.
+            A clearer view.
+            <br />A better workday.
           </h1>
           <p>
-            A little more clarity. A lot more connection.
+            Customers, projects, and your people.
             <br />
-            Your entire sales journey, thoughtfully in one place.
+            One considered space to move work forward.
           </p>
-          <div className="auth-constellation" aria-hidden="true">
-            <span className="constellation-ring r1" />
-            <span className="constellation-ring r2" />
-            <span className="constellation-ring r3" />
-            <span className="constellation-center">
-              <Layers size={35} />
-            </span>
-            <span className="constellation-dot d1" />
-            <span className="constellation-dot d2" />
-            <span className="constellation-dot d3" />
-            <span className="constellation-label">
-              The next great connection starts here.
-            </span>
+          <div className="auth-product-preview">
+            <div className="auth-preview-title">
+              <span className="live-dot" /> Your connected workspace
+            </div>
+            <div>
+              <span className="auth-feature-icon">
+                <Users size={20} />
+              </span>
+              <span>
+                <strong>People & relationships</strong>
+                <small>Keep every conversation in context.</small>
+              </span>
+              <ArrowUpRight size={16} />
+            </div>
+            <div>
+              <span className="auth-feature-icon">
+                <Handshake size={20} />
+              </span>
+              <span>
+                <strong>Sales & opportunities</strong>
+                <small>See the next step in every deal.</small>
+              </span>
+              <ArrowUpRight size={16} />
+            </div>
+            <div>
+              <span className="auth-feature-icon">
+                <CheckSquare size={20} />
+              </span>
+              <span>
+                <strong>Work & your team</strong>
+                <small>Clear ownership. Shared progress.</small>
+              </span>
+              <ArrowUpRight size={16} />
+            </div>
           </div>
         </div>
         <p className="auth-foot">
@@ -96,7 +123,7 @@ export function LoginPage() {
       </section>
       <section className="auth-form-side">
         <div className="auth-form-wrap">
-          <span className="badge green">YOUR NEXT CHAPTER</span>
+          <span className="badge green">ORBIT WORKSPACE</span>
           <h2>
             {mode === "register"
               ? "Make room for growth."
@@ -114,7 +141,7 @@ export function LoginPage() {
               : mode === "invite"
                 ? "Accept your workspace invitation."
                 : mode === "login"
-                  ? "Let’s pick up where you left off."
+                  ? "Sign in to your workspace."
                   : "Securely recover access to your workspace."}
           </p>
           {error && <ErrorNotice message={error} />}{" "}

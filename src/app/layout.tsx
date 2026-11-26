@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/manrope";
 import "./globals.css";
+import "./apple-design.css";
 export const metadata: Metadata = {
   title: "Orbit CRM",
   description: "Your team and customer workspace.",

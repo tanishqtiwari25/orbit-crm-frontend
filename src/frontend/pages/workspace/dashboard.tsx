@@ -52,7 +52,7 @@ export function Dashboard({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">A LITTLE CLARITY. A LOT OF POSSIBILITY.</div>
+          <div className="eyebrow">WORKSPACE OVERVIEW</div>
           <h1>
             Good {hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"},{" "}
             {b.viewer.name.split(" ")[0]}{" "}
@@ -60,7 +60,7 @@ export function Dashboard({
               ✳
             </span>
           </h1>
-          <p>Here’s what’s happening in your orbit today.</p>
+          <p>Your customers, pipeline, and priorities. All in view.</p>
         </div>
         <button className="button primary" onClick={onAdd}>
           <Plus size={16} />
@@ -70,7 +70,7 @@ export function Dashboard({
       <div className="overview-strip">
         <span className="live-dot" />
         <strong>Your workspace at a glance</strong>
-        <span>Every number comes from your visible records.</span>
+        <span>Performance across your workspace.</span>
         <span className="strip-date">
           {new Date().toLocaleDateString("en-US", {
             month: "short",

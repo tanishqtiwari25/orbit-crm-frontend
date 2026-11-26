@@ -64,52 +64,52 @@ const copy: Record<
   { title: string; tagline: string; eyebrow: string }
 > = {
   leads: {
-    title: "Every connection starts here.",
-    tagline: "Find the right people. Make the next move.",
+    title: "Leads",
+    tagline: "Capture opportunities and build your next customer relationship.",
     eyebrow: "YOUR NEXT OPPORTUNITY",
   },
   contacts: {
-    title: "People, not just profiles.",
+    title: "Contacts",
     tagline: "Keep your most valuable relationships close.",
     eyebrow: "THE PEOPLE IN YOUR ORBIT",
   },
   companies: {
-    title: "Good company, great possibilities.",
+    title: "Companies",
     tagline: "A clearer view of the businesses you work with.",
     eyebrow: "BUILT ON RELATIONSHIPS",
   },
   deals: {
-    title: "Keep good things moving.",
+    title: "Deals",
     tagline: "From the first conversation to the final handshake.",
     eyebrow: "YOUR SALES PIPELINE",
   },
   tasks: {
-    title: "A thoughtful next step.",
+    title: "Tasks",
     tagline: "The little follow-ups that make a big difference.",
     eyebrow: "MAKE TIME FOR WHAT MATTERS",
   },
   calendar: {
-    title: "Make room for connection.",
+    title: "Calendar",
     tagline: "Your calls, meetings, and next steps in one place.",
     eyebrow: "YOUR TIME, WELL SPENT",
   },
   quotations: {
-    title: "Put your best offer forward.",
+    title: "Quotations",
     tagline: "Clear proposals. Confident next steps.",
     eyebrow: "FROM POSSIBILITY TO PROPOSAL",
   },
   automations: {
-    title: "Give your team time back.",
+    title: "Automations",
     tagline: "Thoughtful workflows for the work that repeats.",
     eyebrow: "LESS BUSYWORK, MORE MOMENTUM",
   },
   products: {
-    title: "Everything you bring to the table.",
+    title: "Products",
     tagline: "Your products and services, ready for the next opportunity.",
     eyebrow: "THE PRODUCT CATALOG",
   },
   templates: {
-    title: "The right words, ready.",
+    title: "Message templates",
     tagline: "Make every message feel a little more personal.",
     eyebrow: "MEANINGFUL COMMUNICATION",
   },
